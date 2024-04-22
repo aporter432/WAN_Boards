@@ -2,6 +2,7 @@
 #include <LoRa.h>
 
 #define frequency 915E6  // LoRa Frequency
+bool lostCommunication = true; // flag to track if communication has been lost
 
 void setup() {
   Serial.begin(9600);   // initialize serial
@@ -40,6 +41,11 @@ void loop() {
       LoRa.beginPacket();
       LoRa.print("pong,");
       LoRa.endPacket();
+
+      // print sent message
+      Serial.println("pong,");
+
+      lostCommunication = false; // set lostCommunication to false
     }
 
     // print received message and RSSI

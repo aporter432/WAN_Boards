@@ -28,6 +28,8 @@ void loop() {
   LoRa.print("ping,");
   LoRa.endPacket();
 
+  // print sent message
+  Serial.println("ping,");
 
   // try to parse packet
   int packetSize = LoRa.parsePacket();
