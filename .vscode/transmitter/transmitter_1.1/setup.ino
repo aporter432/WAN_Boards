@@ -4,6 +4,11 @@
 #define frequency 915E6  // LoRa Frequency
 bool lostCommunication = true; // flag to track if communication has been lost
 
+#define SWITCH1_PIN 1 // Switch 1 pin
+#define SWITCH2_PIN 2 // Switch 2 pin
+#define LED1_PIN 3 // LED 1 pin
+#define LED2_PIN 4 // LED 2 pin
+
 void setup() {
   Serial.begin(9600);   // initialize serial
   while (!Serial);
@@ -18,6 +23,12 @@ void setup() {
   LoRa.setSpreadingFactor(7); // ranges from 6-12, default is 7
   LoRa.setSignalBandwidth(125E3); // ranges from 7.8E3 to 500E3, default is 125E3
   LoRa.setCodingRate4(5); // ranges from 5-8, default is 5
+
+  // Set pin modes
+  pinMode(SWITCH1_PIN, INPUT_PULLUP);
+  pinMode(SWITCH2_PIN, INPUT_PULLUP);
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
 
   Serial.println("LoRa init succeeded.");
 }
