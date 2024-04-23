@@ -42,9 +42,9 @@ void setup() {
 bool handleSwitch1State(String received) {
   received.trim();
   bool previousState = switch1State;
-  if (received == "switch1 closed," && !switch1State) {
+  if (received.equalsIgnoreCase("Switch 1 closed,") && !switch1State) {
     switch1State = true;
-  } else if (received == "switch1 opened," && switch1State) {
+  } else if (received.equalsIgnoreCase("Switch 1 opened,") && switch1State) {
     switch1State = false;
   }
   return previousState != switch1State;
@@ -53,9 +53,9 @@ bool handleSwitch1State(String received) {
 bool handleSwitch2State(String received) {
   received.trim();
   bool previousState = switch2State;
-  if (received == "switch2 closed," && !switch2State) {
+  if (received.equalsIgnoreCase("Switch 2 closed,") && !switch2State) {
     switch2State = true;
-  } else if (received == "switch2 opened," && switch2State) {
+  } else if (received.equalsIgnoreCase("Switch 2 opened,") && switch2State) {
     switch2State = false;
   }
   return previousState != switch2State;
@@ -84,13 +84,13 @@ void loop() {
 
       Serial.println("Sent: pong");
       Serial.println("RSSI: " + String(LoRa.packetRssi()));
-    } else if (received.startsWith("switch1")) {
+    } else if (received.startsWith("Switch 1")) {
       bool switchStateUpdated = handleSwitch1State(received);
       if (switchStateUpdated) {
         digitalWrite(RELAY1_PIN, switch1State ? HIGH : LOW);
         digitalWrite(LED1_PIN, switch1State ? HIGH : LOW);
       }
-    } else if (received.startsWith("switch2")) {
+    } else if (received.startsWith("Switch 2")) {
       bool switchStateUpdated = handleSwitch2State(received);
       if (switchStateUpdated) {
         digitalWrite(RELAY2_PIN, switch2State ? HIGH : LOW);
