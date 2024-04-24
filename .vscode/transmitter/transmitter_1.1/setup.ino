@@ -20,8 +20,8 @@ unsigned long lastSwitch2ChangeTime = 0;
 
 unsigned long lastSwitchChangeTime = 0;
 
-#define PING_INTERVAL 5000 // Send a ping every 5 seconds
-#define PING_TIMEOUT  10000 // Consider the connection lost after 10 seconds without a pong
+#define PING_INTERVAL 1500 // Send a ping every 5 seconds
+#define PING_TIMEOUT  3000 // Consider the connection lost after 10 seconds without a pong
 
 unsigned long lastPingTime = 0;
 unsigned long lastPongTime = 0;
@@ -129,7 +129,10 @@ void loop() {
   }
 
   // Check if the connection is lost
-  if (millis() - lastPongTime > PING_TIMEOUT) {
+  if (millis() - lastPingTime > PING_TIMEOUT) {
+    if (!lostCommunication) {
+      Serial.println("Communication lost");
+    }
     lostCommunication = true;
   }
 }

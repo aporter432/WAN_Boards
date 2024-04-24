@@ -101,6 +101,23 @@ void loop() {
 
   // Check if the connection is lost
   if (millis() - lastPingTime > PING_TIMEOUT) {
+    if (!lostCommunication) {
+      Serial.println("Communication lost");
+    }
     lostCommunication = true;
+  }
+
+  // If communication is lost, alternate the status LEDs and set both relay pins to LOW
+  if (lostCommunication) {
+    digitalWrite(LED1_PIN, HIGH); // Turn on LED1
+    digitalWrite(LED2_PIN, LOW); // Turn off LED2
+    delay(250); // Delay for 250ms
+
+    digitalWrite(LED1_PIN, LOW); // Turn off LED1
+    digitalWrite(LED2_PIN, HIGH); // Turn on LED2
+    delay(250); // Delay for 250ms
+
+    digitalWrite(RELAY1_PIN, LOW); // Set relay 1 to LOW
+    digitalWrite(RELAY2_PIN, LOW); // Set relay 2 to LOW
   }
 }
