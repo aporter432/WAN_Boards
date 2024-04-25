@@ -39,28 +39,33 @@ void setup() {
   Serial.println("LoRa init succeeded.");
 }
 
-bool handleSwitch1State(String received) {
+void handleSwitchState(String received, volatile bool& switchState, int relayPin, int ledPin) {
   received.trim();
-  bool previousState = switch1State;
-  if (received.equalsIgnoreCase("Switch 1 closed,") && !switch1State) {
-    switch1State = true;
-  } else if (received.equalsIgnoreCase("Switch 1 opened,") && switch1State) {
-    switch1State = false;
-  }
-  return previousState != switch1State;
-}
+  int closedIndex = received.indexOf("closed");
+  int openIndex = received.indexOf("open");
 
-bool handleSwitch2State(String received) {
-  received.trim();
-  bool previousState = switch2State;
-  if (received.equalsIgnoreCase("Switch 2 closed,") && !switch2State) {
-    switch2State = true;
-  } else if (received.equalsIgnoreCase("Switch 2 opened,") && switch2State) {
-    switch2State = false;
+  // Only update the state if the received message contains switch state information
+  if (closedIndex != -1 || openIndex != -1) {
+    bool receivedState = closedIndex != -1;
+    if (receivedState != switchState) {
+      switchState = receivedState;
+      digitalWrite(relayPin, switchState ? HIGH : LOW);
+      digitalWrite(ledPin, switchState ? HIGH : LOW);
+    }
   }
-  return previousState != switch2State;
 }
+unsigned long lastBlinkTime = 0;
+bool ledState = false;  
+void blinkLEDs() {
+  if (millis() - lastBlinkTime >= 250) {
+    ledState = !ledState;
 
+    digitalWrite(LED1_PIN, ledState ? HIGH : LOW);
+    digitalWrite(LED2_PIN, ledState ? LOW : HIGH);
+
+    lastBlinkTime = millis();
+  }
+}
 void loop() {
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
@@ -84,18 +89,14 @@ void loop() {
 
       Serial.println("Sent: pong");
       Serial.println("RSSI: " + String(LoRa.packetRssi()));
+
+      // Print the switch states
+      Serial.println("Switch 1 state: " + String(switch1State ? "closed" : "open"));
+      Serial.println("Switch 2 state: " + String(switch2State ? "closed" : "open"));
     } else if (received.startsWith("Switch 1")) {
-      bool switchStateUpdated = handleSwitch1State(received);
-      if (switchStateUpdated) {
-        digitalWrite(RELAY1_PIN, switch1State ? HIGH : LOW);
-        digitalWrite(LED1_PIN, switch1State ? HIGH : LOW);
-      }
+      handleSwitchState(received, switch1State, RELAY1_PIN, LED1_PIN);
     } else if (received.startsWith("Switch 2")) {
-      bool switchStateUpdated = handleSwitch2State(received);
-      if (switchStateUpdated) {
-        digitalWrite(RELAY2_PIN, switch2State ? HIGH : LOW);
-        digitalWrite(LED2_PIN, switch2State ? HIGH : LOW);
-      }
+      handleSwitchState(received, switch2State, RELAY2_PIN, LED2_PIN);
     }
   }
 
@@ -107,16 +108,9 @@ void loop() {
     lostCommunication = true;
   }
 
-  // If communication is lost, alternate the status LEDs and set both relay pins to LOW
+  // If communication is lost, blink the LEDs and set both relay pins to LOW
   if (lostCommunication) {
-    digitalWrite(LED1_PIN, HIGH); // Turn on LED1
-    digitalWrite(LED2_PIN, LOW); // Turn off LED2
-    delay(250); // Delay for 250ms
-
-    digitalWrite(LED1_PIN, LOW); // Turn off LED1
-    digitalWrite(LED2_PIN, HIGH); // Turn on LED2
-    delay(250); // Delay for 250ms
-
+    blinkLEDs();
     digitalWrite(RELAY1_PIN, LOW); // Set relay 1 to LOW
     digitalWrite(RELAY2_PIN, LOW); // Set relay 2 to LOW
   }

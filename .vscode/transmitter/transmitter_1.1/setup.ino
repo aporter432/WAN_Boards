@@ -106,9 +106,24 @@ void handleReceivedPacket() {
       Serial.println("RSSI: " + String(LoRa.packetRssi()));
 
       lastPongTime = millis(); // Update the time of the last pong
+      lostCommunication = false; // Update the communication status
     }
   }
 }
+unsigned long lastBlinkTime = 0;
+bool ledState = false;
+
+void blinkLEDs() {
+  if (millis() - lastBlinkTime >= 250) {
+    ledState = !ledState;
+
+    digitalWrite(LED1_PIN, ledState ? HIGH : LOW);
+    digitalWrite(LED2_PIN, ledState ? LOW : HIGH);
+
+    lastBlinkTime = millis();
+  }
+}
+
 
 void loop() {
   handleSwitch(SWITCH1_PIN, switch1State, lastSwitchChangeTime, LED1_PIN, "Switch 1");
@@ -129,10 +144,14 @@ void loop() {
   }
 
   // Check if the connection is lost
-  if (millis() - lastPingTime > PING_TIMEOUT) {
+  if (millis() - lastPongTime > PING_TIMEOUT) {
     if (!lostCommunication) {
       Serial.println("Communication lost");
     }
     lostCommunication = true;
+  }
+  //if communication is lost
+  if (lostCommunication) {
+    blinkLEDs();
   }
 }
