@@ -2,7 +2,6 @@
 #include <LoRa.h>
 
 #define frequency 915E6
-bool lostCommunication = true;
 
 volatile bool switch1State = false;
 volatile bool switch2State = false;
@@ -12,9 +11,15 @@ volatile bool switch2State = false;
 #define LED1_PIN 3
 #define LED2_PIN 4
 
-#define PING_TIMEOUT  10000 // Consider the connection lost after 10 seconds without a ping
+void requestSwitchStates() {
+  String message = "requestSwitchStates";
 
-unsigned long lastPingTime = 0;
+  LoRa.beginPacket();
+  LoRa.print(message);
+  LoRa.endPacket();
+
+  Serial.println("Sent: " + message); // Log the actual transmission
+}
 
 void setup() {
   Serial.begin(9600);
@@ -37,9 +42,12 @@ void setup() {
   pinMode(LED2_PIN, OUTPUT);
 
   Serial.println("LoRa init succeeded.");
+  // Request the switch states from the transmitter
+  delay(2000); // Give the LoRa module some time to stabilize
+  requestSwitchStates();
 }
 
-void handleSwitchState(String received, volatile bool& switchState, int relayPin, int ledPin) {
+bool handleSwitchState(String received, volatile bool& switchState) {
   received.trim();
   int closedIndex = received.indexOf("closed");
   int openIndex = received.indexOf("open");
@@ -49,23 +57,13 @@ void handleSwitchState(String received, volatile bool& switchState, int relayPin
     bool receivedState = closedIndex != -1;
     if (receivedState != switchState) {
       switchState = receivedState;
-      digitalWrite(relayPin, switchState ? HIGH : LOW);
-      digitalWrite(ledPin, switchState ? HIGH : LOW);
+      return true; // Return true to indicate that the switch state was updated
     }
   }
-}
-unsigned long lastBlinkTime = 0;
-bool ledState = false;  
-void blinkLEDs() {
-  if (millis() - lastBlinkTime >= 250) {
-    ledState = !ledState;
 
-    digitalWrite(LED1_PIN, ledState ? HIGH : LOW);
-    digitalWrite(LED2_PIN, ledState ? LOW : HIGH);
-
-    lastBlinkTime = millis();
-  }
+  return false; // Return false to indicate that the switch state was not updated
 }
+
 void loop() {
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
@@ -78,40 +76,18 @@ void loop() {
     Serial.println("Received: " + received);
     Serial.println("RSSI: " + String(LoRa.packetRssi()));
 
-    if (received.startsWith("ping")) {
-      lostCommunication = false;
-      lastPingTime = millis();
-
-      // Respond with a pong
-      LoRa.beginPacket();
-      LoRa.print("pong,");
-      LoRa.endPacket();
-
-      Serial.println("Sent: pong");
-      Serial.println("RSSI: " + String(LoRa.packetRssi()));
-
-      // Print the switch states
-      Serial.println("Switch 1 state: " + String(switch1State ? "closed" : "open"));
-      Serial.println("Switch 2 state: " + String(switch2State ? "closed" : "open"));
-    } else if (received.startsWith("Switch 1")) {
-      handleSwitchState(received, switch1State, RELAY1_PIN, LED1_PIN);
+    if (received.startsWith("Switch 1")) {
+      if (handleSwitchState(received, switch1State)) {
+        // Update the outputs only if the switch state was updated
+        digitalWrite(RELAY1_PIN, switch1State ? HIGH : LOW);
+        digitalWrite(LED1_PIN, switch1State ? HIGH : LOW);
+      }
     } else if (received.startsWith("Switch 2")) {
-      handleSwitchState(received, switch2State, RELAY2_PIN, LED2_PIN);
+      if (handleSwitchState(received, switch2State)) {
+        // Update the outputs only if the switch state was updated
+        digitalWrite(RELAY2_PIN, switch2State ? HIGH : LOW);
+        digitalWrite(LED2_PIN, switch2State ? HIGH : LOW);
+      }
     }
-  }
-
-  // Check if the connection is lost
-  if (millis() - lastPingTime > PING_TIMEOUT) {
-    if (!lostCommunication) {
-      Serial.println("Communication lost");
-    }
-    lostCommunication = true;
-  }
-
-  // If communication is lost, blink the LEDs and set both relay pins to LOW
-  if (lostCommunication) {
-    blinkLEDs();
-    digitalWrite(RELAY1_PIN, LOW); // Set relay 1 to LOW
-    digitalWrite(RELAY2_PIN, LOW); // Set relay 2 to LOW
   }
 }
