@@ -45,8 +45,29 @@ void loop() {
     LoRa.print(message);
     LoRa.endPacket();
     Serial.println("Sent message: " + message); // Print the sent message
-    Serial.println("Last received signal strength: " + String(LoRa.packetRssi()) + " dB"); // Print the RSSI of the last received message
     previousSwitch1State = switch1State;
     previousSwitch2State = switch2State;
+  }
+
+  // Check for incoming messages
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    String received = "";
+    while (LoRa.available()) {
+      char c = (char)LoRa.read();
+      received += c;
+    }
+
+    received.trim(); // Trim the received message
+    Serial.println("Received message: " + received);
+
+    // If a request for the switch state was received, send the current switch state
+    if (received == "Request switch state") {
+      String message = "Switch 1: " + String(switch1State ? "closed" : "open") + ", Switch 2: " + String(switch2State ? "closed" : "open");
+      LoRa.beginPacket();
+      LoRa.print(message);
+      LoRa.endPacket();
+      Serial.println("Sent message: " + message); // Print the sent message
+    }
   }
 }

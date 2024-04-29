@@ -27,6 +27,15 @@ void setup() {
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
   Serial.println("LoRa init succeeded.");
+
+  delay(1500); // Wait for 1 second to let the device stabilize
+
+  // Request the current switch state from the transmitter
+  String requestMessage = "Request switch state";
+  LoRa.beginPacket();
+  LoRa.print(requestMessage);
+  LoRa.endPacket();
+  Serial.println("Sent message: " + requestMessage);
 }
 
 void loop() {
