@@ -4,6 +4,8 @@
 #define frequency 915E6
 #define RELAY1_PIN 1
 #define RELAY2_PIN 2
+#define LED1_PIN 3
+#define LED2_PIN 4
 
 void setup() {
   Serial.begin(9600);
@@ -22,6 +24,8 @@ void setup() {
 
   pinMode(RELAY1_PIN, OUTPUT);
   pinMode(RELAY2_PIN, OUTPUT);
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
   Serial.println("LoRa init succeeded.");
 }
 
@@ -36,6 +40,7 @@ void loop() {
 
     received.trim(); // Trim the received message
     Serial.println("Received message: " + received);
+    Serial.println("Received signal strength: " + String(LoRa.packetRssi()) + " dB"); // Print the RSSI of the received message
 
     int switch1Index = received.indexOf("Switch 1: ");
     int switch2Index = received.indexOf(", Switch 2: ");
@@ -45,11 +50,13 @@ void loop() {
       switch1StateStr.trim(); // Trim the switch state string
       bool relay1State = switch1StateStr == "closed";
       digitalWrite(RELAY1_PIN, relay1State ? HIGH : LOW);
+      digitalWrite(LED1_PIN, relay1State ? HIGH : LOW); // Update LED1 state
 
       String switch2StateStr = received.substring(switch2Index + 12); // Extract the switch 2 state
       switch2StateStr.trim(); // Trim the switch state string
       bool relay2State = switch2StateStr == "closed";
       digitalWrite(RELAY2_PIN, relay2State ? HIGH : LOW);
+      digitalWrite(LED2_PIN, relay2State ? HIGH : LOW); // Update LED2 state
     }
   }
 }
