@@ -2,7 +2,8 @@
 #include <LoRa.h>
 
 #define frequency 915E6
-#define RELAY_PIN 1
+#define RELAY1_PIN 1
+#define RELAY2_PIN 2
 
 void setup() {
   Serial.begin(9600);
@@ -19,7 +20,8 @@ void setup() {
   LoRa.setSignalBandwidth(125E3);
   LoRa.setCodingRate4(5);
 
-  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(RELAY1_PIN, OUTPUT);
+  pinMode(RELAY2_PIN, OUTPUT);
   Serial.println("LoRa init succeeded.");
 }
 
@@ -35,11 +37,19 @@ void loop() {
     received.trim(); // Trim the received message
     Serial.println("Received message: " + received);
 
-    if (received.startsWith("Switch 1 state changed: ")) {
-      String switchStateStr = received.substring(24); // Extract the switch state
-      switchStateStr.trim(); // Trim the switch state string
-      bool relayState = switchStateStr == "closed";
-      digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
+    int switch1Index = received.indexOf("Switch 1: ");
+    int switch2Index = received.indexOf(", Switch 2: ");
+
+    if (switch1Index != -1 && switch2Index != -1) {
+      String switch1StateStr = received.substring(switch1Index + 10, switch2Index); // Extract the switch 1 state
+      switch1StateStr.trim(); // Trim the switch state string
+      bool relay1State = switch1StateStr == "closed";
+      digitalWrite(RELAY1_PIN, relay1State ? HIGH : LOW);
+
+      String switch2StateStr = received.substring(switch2Index + 12); // Extract the switch 2 state
+      switch2StateStr.trim(); // Trim the switch state string
+      bool relay2State = switch2StateStr == "closed";
+      digitalWrite(RELAY2_PIN, relay2State ? HIGH : LOW);
     }
   }
 }
