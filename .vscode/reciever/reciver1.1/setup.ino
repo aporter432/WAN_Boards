@@ -6,6 +6,12 @@
 #define RELAY2_PIN 2
 #define LED1_PIN 3
 #define LED2_PIN 4
+#define HEARTBEAT_TIMEOUT 2000 // 30 seconds, adjust as needed
+
+unsigned long lastHeartbeatTime = 0;
+bool communicationLost = true;
+bool currentRelay1State = false;
+bool currentRelay2State = false;
 
 void setup() {
   Serial.begin(9600);
@@ -36,6 +42,7 @@ void setup() {
   LoRa.print(requestMessage);
   LoRa.endPacket();
   Serial.println("Sent message: " + requestMessage);
+  
 }
 
 void loop() {
@@ -49,23 +56,47 @@ void loop() {
 
     received.trim(); // Trim the received message
     Serial.println("Received message: " + received);
-    Serial.println("Received signal strength: " + String(LoRa.packetRssi()) + " dB"); // Print the RSSI of the received message
 
-    int switch1Index = received.indexOf("Switch 1: ");
-    int switch2Index = received.indexOf(", Switch 2: ");
-
-    if (switch1Index != -1 && switch2Index != -1) {
-      String switch1StateStr = received.substring(switch1Index + 10, switch2Index); // Extract the switch 1 state
-      switch1StateStr.trim(); // Trim the switch state string
-      bool relay1State = switch1StateStr == "closed";
-      digitalWrite(RELAY1_PIN, relay1State ? HIGH : LOW);
-      digitalWrite(LED1_PIN, relay1State ? HIGH : LOW); // Update LED1 state
-
-      String switch2StateStr = received.substring(switch2Index + 12); // Extract the switch 2 state
-      switch2StateStr.trim(); // Trim the switch state string
-      bool relay2State = switch2StateStr == "closed";
-      digitalWrite(RELAY2_PIN, relay2State ? HIGH : LOW);
-      digitalWrite(LED2_PIN, relay2State ? HIGH : LOW); // Update LED2 state
+    // If a heartbeat was received, update the lastHeartbeatTime
+    if (received == "Heartbeat") {
+      Serial.println("Heartbeat received");
+      lastHeartbeatTime = millis();
+      if (communicationLost) {
+        // If communication was previously lost, re-establish it and set the relay states to their last known values
+        digitalWrite(RELAY1_PIN, currentRelay1State ? HIGH : LOW);
+        digitalWrite(RELAY2_PIN, currentRelay2State ? HIGH : LOW);
+        digitalWrite(LED1_PIN, currentRelay1State ? HIGH : LOW); // Update LED1 state
+        digitalWrite(LED2_PIN, currentRelay2State ? HIGH : LOW); // Update LED2 state
+        communicationLost = false;
+      }
     }
+    // If a switch state was received, update the relay states
+    else if (received.startsWith("Switch 1:")) {
+      bool switch1State = received.indexOf("Switch 1: closed") != -1;
+      bool switch2State = received.indexOf("Switch 2: closed") != -1;
+
+      // Only update relay states if the state has changed
+      if (switch1State != currentRelay1State) {
+        digitalWrite(RELAY1_PIN, switch1State ? HIGH : LOW); // Update relay1 state
+        digitalWrite(LED1_PIN, switch1State ? HIGH : LOW); // Update LED1 state
+        currentRelay1State = switch1State;
+      }
+
+      if (switch2State != currentRelay2State) {
+        digitalWrite(RELAY2_PIN, switch2State ? HIGH : LOW); // Update relay2 state
+        digitalWrite(LED2_PIN, switch2State ? HIGH : LOW); // Update LED2 state
+        currentRelay2State = switch2State;
+      }
+
+      Serial.println("Switch states updated");
+    }
+  }
+
+  // Check if a heartbeat has been received recently
+  if (!communicationLost && millis() - lastHeartbeatTime > HEARTBEAT_TIMEOUT) {
+    // If not, open both relays and set the communicationLost flag
+    digitalWrite(RELAY1_PIN, LOW);
+    digitalWrite(RELAY2_PIN, LOW);
+    communicationLost = true;
   }
 }

@@ -6,9 +6,11 @@
 #define SWITCH2_PIN 2
 #define LED1_PIN 3
 #define LED2_PIN 4
+#define HEARTBEAT_INTERVAL 1000 // Send a heartbeat every 1 seconds
 
 bool previousSwitch1State = HIGH;
 bool previousSwitch2State = HIGH;
+unsigned long lastHeartbeatTime = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -47,6 +49,15 @@ void loop() {
     Serial.println("Sent message: " + message); // Print the sent message
     previousSwitch1State = switch1State;
     previousSwitch2State = switch2State;
+  }
+
+  // Send a heartbeat message if it's time
+  if (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL) {
+    LoRa.beginPacket();
+    LoRa.print("Heartbeat");
+    LoRa.endPacket();
+    Serial.println("Sent heartbeat");
+    lastHeartbeatTime = millis();
   }
 
   // Check for incoming messages
