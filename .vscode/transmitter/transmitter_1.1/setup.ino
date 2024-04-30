@@ -6,11 +6,14 @@
 #define SWITCH2_PIN 2
 #define LED1_PIN 3
 #define LED2_PIN 4
-#define HEARTBEAT_INTERVAL 1000 // Send a heartbeat every 1 seconds
+#define HEARTBEAT_INTERVAL 1000 // Send a heartbeat every 1 seconds.
+#define ALTERNATE_INTERVAL 250 // 250 ms, adjust as needed
 
 bool previousSwitch1State = HIGH;
 bool previousSwitch2State = HIGH;
 unsigned long lastHeartbeatTime = 0;
+bool communicationLost = true;
+unsigned long lastAlternateTime = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -51,13 +54,26 @@ void loop() {
     previousSwitch2State = switch2State;
   }
 
-  // Send a heartbeat message if it's time
-  if (millis() - lastHeartbeatTime >= HEARTBEAT_INTERVAL) {
+  // Send a heartbeat every HEARTBEAT_INTERVAL milliseconds
+  if (millis() - lastHeartbeatTime > HEARTBEAT_INTERVAL) {
     LoRa.beginPacket();
     LoRa.print("Heartbeat");
     LoRa.endPacket();
-    Serial.println("Sent heartbeat");
+    Serial.println("Sent heartbeat"); // Print the heartbeat message
     lastHeartbeatTime = millis();
+  }
+
+  // If communication is lost, alternate the LEDs
+  if (communicationLost) {
+    Serial.println("Communication lost"); // Print the communication lost message
+    // If it's time to alternate the LEDs
+    if (millis() - lastAlternateTime > ALTERNATE_INTERVAL) {
+      // Alternate the LEDs
+      bool led1State = digitalRead(LED1_PIN);
+      digitalWrite(LED1_PIN, !led1State);
+      digitalWrite(LED2_PIN, led1State);
+      lastAlternateTime = millis();
+    }
   }
 
   // Check for incoming messages

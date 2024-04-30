@@ -12,6 +12,8 @@ unsigned long lastHeartbeatTime = 0;
 bool communicationLost = true;
 bool currentRelay1State = false;
 bool currentRelay2State = false;
+#define ALTERNATE_INTERVAL 250 // 250 ms, adjust as needed
+unsigned long lastAlternateTime = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -99,4 +101,16 @@ void loop() {
     digitalWrite(RELAY2_PIN, LOW);
     communicationLost = true;
   }
-}
+
+  // If communication is lost, alternate the LEDs
+  if (communicationLost) {
+    // If it's time to alternate the LEDs
+    if (millis() - lastAlternateTime > ALTERNATE_INTERVAL) {
+      // Alternate the LEDs
+      bool led1State = digitalRead(LED1_PIN);
+      digitalWrite(LED1_PIN, !led1State);
+      digitalWrite(LED2_PIN, led1State);
+      lastAlternateTime = millis();
+    }
+  }
+}  
